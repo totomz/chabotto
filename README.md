@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/totomz/chabotto.svg?branch=master)](https://travis-ci.org/totomz/chabotto)
 [Chabotto](https://en.wikipedia.org/wiki/John_Cabot) is a simple and light "framework" to easily implement a service desicovery pattern in Java, that use redis as service registry.
 
 Its main features are:
