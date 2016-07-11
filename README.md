@@ -30,6 +30,6 @@ A `client`:
 Chabotto requires a connection to a Redis database. Currently it uses Jedis for the connection.
 
 Services are registered at
-* key `chabotto:service:<serviceName>:<uuid>=uri` with EXpire 30 seconds.
-* in the list `chabotto:serlist=[uuid]`
-* in the zset `chabotto:serload=[{load, uuid}]`
+* key `cb8:service:<serviceName>:<uuid>=uri` with EXpire 30 seconds.
+* in the list `cb8:serlist=[uuid]`
+* in the zset `cb8:serload=[{load, uuid}]`
