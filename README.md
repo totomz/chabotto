@@ -1,3 +1,6 @@
+[![Build Status](https://travis-ci.org/totomz/chabotto.svg?branch=master)](https://travis-ci.org/totomz/chabotto)
+
+
 [Chabotto](https://en.wikipedia.org/wiki/John_Cabot) is a simple and light "framework" to easily implement service discovery in Java.
 
 If you have several instances that are offering a `serviceName`, you can use Chabotto to get an `java.net.URI` to one of these instances to consume the service.
