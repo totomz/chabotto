@@ -15,26 +15,7 @@ import it.myideas.chabotto.Chabotto;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.ScanParams;
 
-public class TestServiceRegistration {
-private Jedis jedis;
-    
-    
-    @Before
-    public void init() {
-        jedis = new Jedis();
-    }
-    
-    @After
-    public void cleanup() {
-        
-        jedis.scan("0", new ScanParams().match("*"))
-            .getResult()
-            .stream().map(s -> {System.out.println("Deleting " + s); return s;})
-//            .count()
-            .forEach(jedis::del)
-        ;
-        jedis.close();
-    }
+public class TestServiceRegistration extends BaseTest {
     
     @Test
     public void testServiceRegistration() throws URISyntaxException {

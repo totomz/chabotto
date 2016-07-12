@@ -12,8 +12,12 @@ import org.junit.Test;
 public class TestJavaProcess {
     
    
+    /**
+     * Test that the class that forks a new jvm works. Other tests needs this functionality
+     * @throws IOException
+     * @throws InterruptedException
+     */
     @Test
-//    @Ignore
     public void forkProcess() throws IOException, InterruptedException {
         
         final Process proc = JavaProcess.exec(TestApp.class, "pippo");
@@ -26,7 +30,7 @@ public class TestJavaProcess {
                 while ((line = input.readLine()) != null) {
                   System.out.println("subProcess: " + line);
                   if(i == 1) {
-                      assertEquals("pippo", line); 
+                      assertEquals("pippo", line);  // The class will output its parameters
                   }
                   i++;
                 }

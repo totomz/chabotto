@@ -7,10 +7,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
 
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,56 +15,11 @@ import org.slf4j.LoggerFactory;
 import integration.utils.SimpleService;
 import integration.utils.javaprocess.JavaProcess;
 import it.myideas.chabotto.Chabotto;
-import redis.clients.jedis.Jedis;
 import redis.clients.jedis.ScanParams;
 
-public class TestHeartBeat {
+public class TestHeartBeat extends BaseTest {
 
-    private Jedis jedis;
-    
     private static Logger log = LoggerFactory.getLogger(TestHeartBeat.class);
-    private ArrayList<Process> cleanUpList;
-    
-    static {
-        System.setProperty(org.slf4j.impl.SimpleLogger.DEFAULT_LOG_LEVEL_KEY, "TRACE");
-    }
-    
-    @Before
-    public void init() {
-        jedis = new Jedis();
-        cleanUpList = new ArrayList<>();
-        cleanup();
-    }
-    
-    @After
-    public void cleanup() {
-        
-        // If an assert fail, subprocess may still be alive
-        cleanUpList.forEach((process) -> {
-            
-            try{
-                System.out.println("Stopping " + process);
-                process.destroy();
-                
-                Thread.sleep(2000);
-                System.out.println("Still running? " + process.isAlive());
-            }
-            catch (Exception e) {
-                System.out.println(e.getMessage());
-            }
-            
-        });
-        
-        jedis.scan("0", new ScanParams().match("*"))
-            .getResult()
-            .forEach(key -> {
-                System.out.println("Deleting " + key + "..." + jedis.del(key));
-            })
-        ;
-        jedis.close();
-    }
-    
-    
     
 //    @Test
     public void testServiceHeartBeatFailure() throws InterruptedException, IOException {
@@ -78,8 +30,8 @@ public class TestHeartBeat {
         Process serviceB = JavaProcess.exec(SimpleService.class, "hbeat");
         
         // Register the process to be cleaned up in case of failures
-        cleanUpList.add(serviceA);
-        cleanUpList.add(serviceB);
+        processToDestroy.add(serviceA);
+        processToDestroy.add(serviceB);
         
         
         // DEBUG
@@ -118,8 +70,8 @@ public class TestHeartBeat {
         Process serviceB = JavaProcess.exec(SimpleService.class, "peppapig");
         
         // Register the process to be cleaned up in case of failures
-        cleanUpList.add(serviceA);
-        cleanUpList.add(serviceB);
+        processToDestroy.add(serviceA);
+        processToDestroy.add(serviceB);
         
         // DEBUG
         // see what is going on in the subprocess
