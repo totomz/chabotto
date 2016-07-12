@@ -48,7 +48,7 @@ public class Chabotto {
     
     /**
      * Set the {@link JedisPool} to connect to the redis instance;
-     * @param pool
+     * @param pool The {@link JedisPool} to use for connecting to a running Redis instance
      */
     public static void setJedisPool(JedisPool pool) {
         jedispool = pool;        
@@ -58,7 +58,7 @@ public class Chabotto {
      * 
      * Register a service
      * @param name The name of the service
-     * @param uri A full URI string: <protocol>://<host>[:port][/path])
+     * @param uri A full URI string: {@literal <protocol>://<host>[:port][/path])}
      * @return {@link Either} an exception if something got wrong, or the service unique identifier 
      */
     public static Either<Exception, String> registerService(String name, String uri) {
@@ -110,7 +110,7 @@ public class Chabotto {
     }
 
     /**
-     * Remove the service identified by its <b>uuid</b> from the registry, and from any other collection. </br>
+     * Remove the service identified by its <b>uuid</b> from the registry, and from any other collection. 
      * If the service is not managed by this vm (which means, the service has not been registered by <b>this</b> instance of Chabotto), the service is not removed 
      * and an {@link IllegalArgumentException} is returned 
      * @param uuid the unique identifier of the service to remove
