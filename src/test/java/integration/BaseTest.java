@@ -4,7 +4,11 @@ import java.util.ArrayList;
 
 import org.junit.After;
 import org.junit.Before;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import it.myideas.chabotto.Chabotto;
+import javaslang.control.Try;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.ScanParams;
 
@@ -19,13 +23,13 @@ public class BaseTest {
         System.setProperty(org.slf4j.impl.SimpleLogger.DEFAULT_LOG_LEVEL_KEY, "TRACE");
     }
     
+    private static final Logger log = LoggerFactory.getLogger(BaseTest.class);
     protected Jedis jedis;    
     protected ArrayList<Process> processToDestroy;
     
     
     @Before
     public void init() {
-        System.out.println("************ INIT");
         jedis = new Jedis();
         processToDestroy = new ArrayList<>();
         cleanup();
@@ -33,17 +37,12 @@ public class BaseTest {
     
     @After
     public void cleanup() {
-        System.out.println("************ CLEANUP");
-        
         // If an assert fail, subprocess may still be alive
         processToDestroy.forEach((process) -> {
             
             try{
-                System.out.println("Stopping " + process);
                 process.destroy();
-                
                 Thread.sleep(2000);
-                System.out.println("Still running? " + process.isAlive());
             }
             catch (Exception e) {
                 System.out.println(e.getMessage());
@@ -54,9 +53,30 @@ public class BaseTest {
         jedis.scan("0", new ScanParams().match("*"))
             .getResult()
             .forEach(key -> {
-                System.out.println("Deleting " + key + "..." + jedis.del(key));
+//                System.out.println("Deleting " + key + "...");
+                jedis.del(key);
             })
         ;
         jedis.close();
     }
+    
+    protected void waitForHeartbeatTimeOut() {
+        log.info("The service should expire after " + Chabotto.HEARTBEAT_SEC + " seconds. Waiting");
+        int tick = Chabotto.HEARTBEAT_SEC + 5;
+        for(int i=0;i<tick;i++) {
+            log.info("waiting....." + i + "/" + tick);
+            Try.of(() ->{Thread.sleep(1 * 1000);return "";});    
+        }
+    }
+    
+    /**
+     * 
+     * @param string The {@link String} that will be randomized 
+     * @return the input string + Math.random()
+     */
+    public String randomize(String string) {
+        return string + (int)(Math.random()*1000);
+    }
+    
+    
 }

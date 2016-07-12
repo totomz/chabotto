@@ -47,12 +47,7 @@ public class TestHeartBeat extends BaseTest {
         serviceA.destroy();
         serviceB.destroy();
         
-        log.info("The service should expire after " + Chabotto.HEARTBEAT_SEC + " seconds. Waiting");
-        int tick = Chabotto.HEARTBEAT_SEC + 5;
-        for(int i=0;i<tick;i++) {
-            log.info("waiting....." + i + "/" + tick);
-            Thread.sleep(1 * 1000);    
-        }
+        waitForHeartbeatTimeOut();
         
         assertFalse(serviceA.isAlive());
         assertFalse(serviceB.isAlive());
@@ -82,12 +77,7 @@ public class TestHeartBeat extends BaseTest {
         Thread.sleep(2 * 1000);
         assertEquals(2, jedis.scan("0", new ScanParams().match("cb8:service:peppapig:*")).getResult().size());
      
-        log.info("The service should expire after " + Chabotto.HEARTBEAT_SEC + " seconds. Waiting"); 
-        int tick = Chabotto.HEARTBEAT_SEC + 5;
-        for(int i=0;i<tick;i++) {
-            log.info("waiting....." + i + "/" + tick);
-            Thread.sleep(1 * 1000);    
-        }
+        waitForHeartbeatTimeOut();
 
         log.info("Verify that the services are still there");
         assertTrue(serviceA.isAlive());

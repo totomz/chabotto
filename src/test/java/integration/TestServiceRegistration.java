@@ -1,18 +1,19 @@
 package integration;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
+import java.util.Optional;
 
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 import it.myideas.chabotto.Chabotto;
-import redis.clients.jedis.Jedis;
+import javaslang.control.Either;
 import redis.clients.jedis.ScanParams;
 
 public class TestServiceRegistration extends BaseTest {
@@ -39,5 +40,40 @@ public class TestServiceRegistration extends BaseTest {
         
         // Be sure that the service is going to autoexpire
         assertTrue("key TTL seems not set", jedis.ttl("cb8:service:" + name + ":" + uuid) > 20);
+        
+    }
+    
+    @Test
+    public void testServiceDeregistration() {
+        
+        String name = randomize("deregister");        
+        Either<Exception , String> uuid = Chabotto.registerService(name, "myprotocol://ahost.name.com:125/pippo/pluto/paperino");        
+        assertTrue(uuid.isRight());
+        
+        // Try to unregister a service not registered by Chabotto
+        String fakeUuid = "21309";
+        String fakeService = "cb8:service:fake:" + fakeUuid;
+        jedis.set(fakeService, "lalalal");
+        Optional<Exception> op = Chabotto.unregisterService(name, fakeUuid);
+        assertTrue(op.isPresent());
+        assertEquals(IllegalArgumentException.class, op.get().getClass());
+        
+        // Now deregister a valid service
+        Optional<Exception> deregisterOp = Chabotto.unregisterService(name, uuid.get());
+        assertFalse(deregisterOp.isPresent());
+        
+        // Check that the service has been removed from any queue. 
+        // But wait to be sure that the heartbeat is not running
+        waitForHeartbeatTimeOut();        
+        assertNull(jedis.get("cb8:service:" + name + ":" + uuid.get()));
+        
+        // Now, the service should not be available
+        Either<Exception, URI> insance = Chabotto.getServiceRoundRobin(name);
+        assertTrue(insance.isLeft());
+        assertEquals(IllegalArgumentException.class, insance.getLeft().getClass());
+        
+        // TODO Gira su tutte le altre chiavi!
+        
+        
     }
 }
