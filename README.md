@@ -1,5 +1,7 @@
 [Chabotto](https://en.wikipedia.org/wiki/John_Cabot) is a simple and light "framework" to easily implement a service desicovery pattern in Java, that use redis as service registry.
 
+
+
 Its main features are:
 
 * lightweight: few classes, no server required
@@ -30,6 +32,6 @@ A `client`:
 Chabotto requires a connection to a Redis database. Currently it uses Jedis for the connection.
 
 Services are registered at
-* key `cb8:service:<serviceName>:<uuid>=uri` with EXpire 30 seconds.
+* key `cb8:service:<serviceName>:<uuid>=uri` with EXpire 30 seconds. (This value is currently hardcoded)
 * in the list `cb8:serlist=[uuid]`
 * in the zset `cb8:serload=[{load, uuid}]`

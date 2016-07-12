@@ -7,9 +7,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.List;
+import java.util.ArrayList;
 
 import org.junit.After;
 import org.junit.Before;
@@ -17,64 +15,72 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import integration.javaprocess.JavaProcess;
+import integration.utils.SimpleService;
+import integration.utils.javaprocess.JavaProcess;
 import it.myideas.chabotto.Chabotto;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.ScanParams;
 
-public class UseCase {
+public class TestHeartBeat {
 
     private Jedis jedis;
     
-    private static Logger log = LoggerFactory.getLogger(UseCase.class);
+    private static Logger log = LoggerFactory.getLogger(TestHeartBeat.class);
+    private ArrayList<Process> cleanUpList;
+    
+    static {
+        System.setProperty(org.slf4j.impl.SimpleLogger.DEFAULT_LOG_LEVEL_KEY, "TRACE");
+    }
     
     @Before
     public void init() {
         jedis = new Jedis();
+        cleanUpList = new ArrayList<>();
+        cleanup();
     }
     
     @After
     public void cleanup() {
         
+        // If an assert fail, subprocess may still be alive
+        cleanUpList.forEach((process) -> {
+            
+            try{
+                System.out.println("Stopping " + process);
+                process.destroy();
+                
+                Thread.sleep(2000);
+                System.out.println("Still running? " + process.isAlive());
+            }
+            catch (Exception e) {
+                System.out.println(e.getMessage());
+            }
+            
+        });
+        
         jedis.scan("0", new ScanParams().match("*"))
             .getResult()
-//            .stream().map(s -> {System.out.println(s); return s;})
-//            .count()
-            .forEach(jedis::del)
+            .forEach(key -> {
+                System.out.println("Deleting " + key + "..." + jedis.del(key));
+            })
         ;
         jedis.close();
     }
     
-    @Test
-    public void testServiceRegistration() throws URISyntaxException {
-        
-        String name = "simpleService";
-        
-        Chabotto.registerService(name, "myprotocol://ahost.name.com:125/pippo/pluto/paperino");
-        
-        // Verify that the service has been registered        
-        List<String> services = jedis.scan("0", new ScanParams().match(String.format("cb8:service:%s:*", name))).getResult();
-        assertEquals(1, services.size());
-        
-        String uuid = services.get(0).substring(services.get(0).lastIndexOf(":") + 1);
-        
-        URI uri = new URI(jedis.get("cb8:service:" + name + ":" + uuid));
-        
-        assertEquals("myprotocol", uri.getScheme());
-        assertEquals("ahost.name.com", uri.getHost());
-        assertEquals("/pippo/pluto/paperino", uri.getPath());
-        assertEquals(125, uri.getPort());       
-        
-        // Be sure that the service is going to autoexpire
-        assertTrue("key TTL seems not set", jedis.ttl("cb8:service:" + name + ":" + uuid) > 20);
-    }
     
-    @Test
+    
+//    @Test
     public void testServiceHeartBeatFailure() throws InterruptedException, IOException {
         
         // Register 2 services in a separate process
-        Process serviceA = JavaProcess.exec(SimpleService.class, "host1.com");
-        Process serviceB = JavaProcess.exec(SimpleService.class, "host2.com");
+        log.info("Testing heartbeat functionality");
+        Process serviceA = JavaProcess.exec(SimpleService.class, "hbeat");
+        Process serviceB = JavaProcess.exec(SimpleService.class, "hbeat");
+        
+        // Register the process to be cleaned up in case of failures
+        cleanUpList.add(serviceA);
+        cleanUpList.add(serviceB);
+        
         
         // DEBUG
         // see what is going on in the subprocess
@@ -83,7 +89,7 @@ public class UseCase {
 
         log.info("Subprocess started - wait for service registration");
         Thread.sleep(2 * 1000);
-        assertEquals(2, jedis.scan("0", new ScanParams().match("cb8:service:peppapig:*")).getResult().size());
+        assertEquals(2, jedis.scan("0", new ScanParams().match("cb8:service:hbeat:*")).getResult().size());
         
         log.info("Destroying subprocess");
         serviceA.destroy();
@@ -100,7 +106,7 @@ public class UseCase {
         assertFalse(serviceB.isAlive());
         
         log.info("Verify that are not there");
-        assertEquals(0, jedis.scan("0", new ScanParams().match("cb8:service:peppapig:*")).getResult().size());
+        assertEquals(0, jedis.scan("0", new ScanParams().match("cb8:service:hbeat:*")).getResult().size());
         
     }
     
@@ -108,8 +114,12 @@ public class UseCase {
     public void testServiceHeartBeat() throws IOException, InterruptedException {
         
         // Register 2 services in a separate process
-        Process serviceA = JavaProcess.exec(SimpleService.class, "host1.com");
-        Process serviceB = JavaProcess.exec(SimpleService.class, "host2.com");
+        Process serviceA = JavaProcess.exec(SimpleService.class, "peppapig");
+        Process serviceB = JavaProcess.exec(SimpleService.class, "peppapig");
+        
+        // Register the process to be cleaned up in case of failures
+        cleanUpList.add(serviceA);
+        cleanUpList.add(serviceB);
         
         // DEBUG
         // see what is going on in the subprocess

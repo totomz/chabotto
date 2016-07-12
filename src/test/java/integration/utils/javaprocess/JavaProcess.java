@@ -1,4 +1,4 @@
-package integration.javaprocess;
+package integration.utils.javaprocess;
 
 import java.io.File;
 import java.io.IOException;
