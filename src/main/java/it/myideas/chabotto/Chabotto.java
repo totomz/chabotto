@@ -1,6 +1,7 @@
 package it.myideas.chabotto;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -9,6 +10,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,6 +19,8 @@ import org.slf4j.LoggerFactory;
 import javaslang.control.Either;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.ScanParams;
+import redis.clients.jedis.ScanResult;
 
 /**
  * Main class for this service registry. 
@@ -208,5 +213,35 @@ public class Chabotto {
         if(log.isDebugEnabled()){
             log.debug(message.toString());
         }
+    }
+
+    public static Stream<URI> listInstances(String name) {
+
+        ArrayList<URI> temp = new ArrayList<>(1000);
+        
+        try(Jedis jedis = jedispool.getResource()) {
+        
+            ScanResult<String> keys;
+            String scanIndex = "0";
+            
+            do {
+                keys = jedis.scan(scanIndex, new ScanParams().match("cb8:service:"+name+":*"));
+                scanIndex = keys.getStringCursor();
+                
+                temp.addAll(keys.getResult().stream()
+//                        .map(s -> {System.out.println(s);return s;})
+                        .map(uri -> {
+                            try {return new URI(uri);}
+                            catch (Exception e) {e.printStackTrace();return null;}
+                        }).collect(Collectors.toList()));
+                        
+//                        System.out.println(":::::::::::::::::SARKAZZOOOOOO");
+            }
+            while (!scanIndex.equals("0"));
+                
+        }
+        
+        return temp.stream();
+
     }
 }
