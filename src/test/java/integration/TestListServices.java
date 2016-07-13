@@ -2,6 +2,10 @@ package integration;
 
 import static org.junit.Assert.assertEquals;
 
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,13 +15,15 @@ import it.myideas.chabotto.Chabotto;
 public class TestListServices extends BaseTest {
 
     static {
-       System.setProperty(org.slf4j.impl.SimpleLogger.DEFAULT_LOG_LEVEL_KEY, "INFO");
+        // The default is DEBUG - and it will log *A LOT*
+        System.setProperty("org.slf4j.simpleLogger.log.it.myideas.chabotto.Chabotto", "INFO");
     }
+    
     
     private static Logger log = LoggerFactory.getLogger(TestListServices.class);
     
     @Test
-    public void testListOfServices() throws InterruptedException {
+    public void testListOfServices() throws InterruptedException, URISyntaxException, MalformedURLException {
         
         // Registering 1500 services
         int nServices = 1500;
@@ -36,8 +42,7 @@ public class TestListServices extends BaseTest {
         long start = System.currentTimeMillis();
         assertEquals(nServices, Chabotto.listInstances("ciaone").count());
         
-        System.out.println("ELAPSED: " + (System.currentTimeMillis() - start) + "ms");
+        log.info("ELAPSED: " + (System.currentTimeMillis() - start) + "ms");
         
-//        jedis.scan("0", new ScanParams().match("cb8:service:ciaone:*")).getResult().forEach(System.out::println);
     }
 }

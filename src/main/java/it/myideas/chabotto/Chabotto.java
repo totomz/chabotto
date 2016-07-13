@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import javaslang.control.Either;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.Pipeline;
 import redis.clients.jedis.ScanParams;
 import redis.clients.jedis.ScanResult;
 
@@ -217,6 +218,14 @@ public class Chabotto {
 
     public static Stream<URI> listInstances(String name) {
 
+        /*
+         *  This method is a clusterfuck. 
+         *  I need it only for internal testing. I know it wil still be here in 2018. 
+         *  If you are reding this:
+         *      1) Sorry for this method
+         *      2) Rewrite it  
+         */
+        
         ArrayList<URI> temp = new ArrayList<>(1000);
         
         try(Jedis jedis = jedispool.getResource()) {
@@ -227,20 +236,27 @@ public class Chabotto {
             do {
                 keys = jedis.scan(scanIndex, new ScanParams().match("cb8:service:"+name+":*"));
                 scanIndex = keys.getStringCursor();
-                
                 temp.addAll(keys.getResult().stream()
-//                        .map(s -> {System.out.println(s);return s;})
+                        .map(key -> {
+                            return jedis.get(key);
+                        })
                         .map(uri -> {
-                            try {return new URI(uri);}
-                            catch (Exception e) {e.printStackTrace();return null;}
-                        }).collect(Collectors.toList()));
+                            
+                            try{return new URI(uri);}
+                            catch (Exception e) {
+                                e.printStackTrace();
+                                return null;
+                            }                
+                        })            
                         
-//                        System.out.println(":::::::::::::::::SARKAZZOOOOOO");
+                        .collect(Collectors.toList()));
             }
             while (!scanIndex.equals("0"));
-                
-        }
         
+            
+            
+        }
+
         return temp.stream();
 
     }
