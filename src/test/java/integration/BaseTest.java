@@ -10,7 +10,6 @@ import org.slf4j.LoggerFactory;
 import it.myideas.chabotto.Chabotto;
 import javaslang.control.Try;
 import redis.clients.jedis.Jedis;
-import redis.clients.jedis.ScanParams;
 
 /**
  * Common init and cleanup for all the tests
@@ -20,8 +19,9 @@ import redis.clients.jedis.ScanParams;
 public class BaseTest {
     
     static {
-        System.setProperty(org.slf4j.impl.SimpleLogger.DEFAULT_LOG_LEVEL_KEY, "TRACE");
-    }
+        System.setProperty(org.slf4j.impl.SimpleLogger.DEFAULT_LOG_LEVEL_KEY, "DEBUG");
+        System.setProperty(org.slf4j.impl.SimpleLogger.LOG_FILE_KEY, "System.out");        
+     }
     
     private static final Logger log = LoggerFactory.getLogger(BaseTest.class);
     protected Jedis jedis;    
@@ -50,8 +50,7 @@ public class BaseTest {
             
         });
         
-        jedis.scan("0", new ScanParams().match("*"))
-            .getResult()
+        jedis.keys("*").stream()
             .forEach(key -> {
 //                System.out.println("Deleting " + key + "...");
                 jedis.del(key);
