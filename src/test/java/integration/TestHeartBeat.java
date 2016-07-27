@@ -15,7 +15,6 @@ import org.slf4j.LoggerFactory;
 import integration.utils.SimpleService;
 import integration.utils.javaprocess.JavaProcess;
 import it.myideas.chabotto.Chabotto;
-import redis.clients.jedis.ScanParams;
 
 public class TestHeartBeat extends BaseTest {
 

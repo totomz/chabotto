@@ -1,5 +1,8 @@
 package integration;
 
+import com.spotify.dns.DnsSrvResolver;
+import com.spotify.dns.DnsSrvResolvers;
+import com.spotify.dns.LookupResult;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -13,64 +16,66 @@ import java.util.Optional;
 import org.junit.Test;
 
 import it.myideas.chabotto.Chabotto;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import javaslang.control.Either;
-import redis.clients.jedis.ScanParams;
 
 public class TestServiceRegistration extends BaseTest {
     
+    private static final DnsSrvResolver resolver = DnsSrvResolvers.newBuilder()
+            .cachingLookups(false)
+            .retainingDataOnFailures(false)
+//            .metered(new StdoutReporter())
+            .dnsLookupTimeoutMillis(1000)
+            .build();
+    
     @Test
-    public void testServiceRegistration() throws URISyntaxException {
+    public void testServiceRegistration() throws URISyntaxException, UnknownHostException, InterruptedException {
         
-        String name = "testServiceRegistration";
+        String name = "db.test.services.porketta";
         
-        Chabotto.registerService(name, "myprotocol://ahost.name.com:125/pippo/pluto/paperino");
+        String uuid = Chabotto.registerService(name, "151.100.152.95", 8080).get();
         
-        // Verify that the service has been registered        
-        List<String> services = jedis.scan("0", new ScanParams().match(String.format("cb8:service:%s:*", name))).getResult();
-        assertEquals(1, services.size());
+        // Verify that the service has been registered
+        List<LookupResult> lookup = resolver.resolve(name);
         
-        String uuid = services.get(0).substring(services.get(0).lastIndexOf(":") + 1);
-        
-        URI uri = new URI(jedis.get("cb8:service:" + name + ":" + uuid));
-        
-        assertEquals("myprotocol", uri.getScheme());
-        assertEquals("ahost.name.com", uri.getHost());
-        assertEquals("/pippo/pluto/paperino", uri.getPath());
-        assertEquals(125, uri.getPort());       
+        assertEquals(1, lookup.size());
+        assertEquals("151.100.152.95", InetAddress.getByName(name).getHostAddress());
         
         // Be sure that the service is going to autoexpire
-        assertTrue("key TTL seems not set", jedis.ttl("cb8:service:" + name + ":" + uuid) > 20);
+        assertTrue(lookup.get(0).ttl() < 30);        
         
     }
     
-    @Test
-    public void testServiceDeregistration() {
+//    @Test
+    public void testServiceDeregistration() throws UnknownHostException {
         
-        String name = randomize("deregister");        
-        Either<Exception , String> uuid = Chabotto.registerService(name, "myprotocol://ahost.name.com:125/pippo/pluto/paperino");        
-        assertTrue(uuid.isRight());
+        String name = "jack.test.services.porketta";
+        String uuid = Chabotto.registerService(name, "151.100.152.220", 8080).get();
+        
+        System.out.println("---" + InetAddress.getByName(name).getHostAddress());
         
         // Try to unregister a service not registered by Chabotto
-        String fakeUuid = "21309";
-        String fakeService = "cb8:service:fake:" + fakeUuid;
-        jedis.set(fakeService, "lalalal");
-        Optional<Exception> op = Chabotto.unregisterService(name, fakeUuid);
+        String fakeUuid = "21309." + name;
+        Optional<Exception> op = Chabotto.unregisterService(fakeUuid);
         assertTrue(op.isPresent());
         assertEquals(IllegalArgumentException.class, op.get().getClass());
         
         // Now deregister a valid service
-        Optional<Exception> deregisterOp = Chabotto.unregisterService(name, uuid.get());
+        Optional<Exception> deregisterOp = Chabotto.unregisterService(uuid);
         assertFalse(deregisterOp.isPresent());
+        
+        System.out.println("---" + InetAddress.getByName(name).getHostAddress());
         
         // Check that the service has been removed from any queue. 
         // But wait to be sure that the heartbeat is not running
-        waitForHeartbeatTimeOut();        
-        assertNull(jedis.get("cb8:service:" + name + ":" + uuid.get()));
+//        waitForHeartbeatTimeOut();        
+        
         
         // Now, the service should not be available
-        Either<Exception, URI> insance = Chabotto.getServiceRoundRobin(name);
-        assertTrue(insance.isLeft());
-        assertEquals(IllegalArgumentException.class, insance.getLeft().getClass());
+//        Either<Exception, URI> insance = Chabotto.getServiceRoundRobin(name);
+//        assertTrue(insance.isLeft());
+//        assertEquals(IllegalArgumentException.class, insance.getLeft().getClass());
         
         // TODO Gira su tutte le altre chiavi!
         
