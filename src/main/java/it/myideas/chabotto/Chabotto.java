@@ -1,8 +1,19 @@
 package it.myideas.chabotto;
 
+import com.spotify.dns.DnsSrvResolver;
+import com.spotify.dns.DnsSrvResolvers;
+import com.sun.corba.se.impl.naming.cosnaming.NamingContextImpl;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.net.HttpURLConnection;
 import java.net.URI;
+import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
@@ -17,11 +28,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javaslang.control.Either;
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.Pipeline;
-import redis.clients.jedis.ScanParams;
-import redis.clients.jedis.ScanResult;
 
 /**
  * Main class for this service registry. 
@@ -33,7 +39,6 @@ public class Chabotto {
 
     private Chabotto(){}
 
-    private static JedisPool jedispool = new JedisPool();    
     private static final Logger log = LoggerFactory.getLogger(Chabotto.class);
     
     /** Interval between two heartbeat signal in seconds */
@@ -45,6 +50,13 @@ public class Chabotto {
     /** Scheduled tasks are saved in  map {uuid,task} */
     private static final HashMap<String, ScheduledFuture<?>> scheduledTasks = new HashMap<>();
     
+    private static final DnsSrvResolver resolver = DnsSrvResolvers.newBuilder()
+            .cachingLookups(false)
+            .retainingDataOnFailures(false)
+//            .metered(new StdoutReporter())
+            .dnsLookupTimeoutMillis(1000)
+            .build();
+    
     /////////////
     // METHODS //
     /////////////
@@ -53,66 +65,68 @@ public class Chabotto {
     
     
     /**
-     * Set the {@link JedisPool} to connect to the redis instance;
-     * @param pool The {@link JedisPool} to use for connecting to a running Redis instance
-     */
-    public static void setJedisPool(JedisPool pool) {
-        jedispool = pool;        
-    }
-    
-    /**
      * 
      * Register a service
-     * @param name The name of the service
-     * @param uri A full URI string: {@literal <protocol>://<host>[:port][/path])}
-     * @return {@link Either} an exception if something got wrong, or the service unique identifier 
+     * @param name The DNS name of the service to be registered (eg: redis.kuoko.porketta)
+     * @param host The ip to register (eg: 192.168.14.201)
+     * @param port The port on which this service is listening (eg: 6379)
+     * @return {@link Either} an exception if something got wrong, or the service name 
      */
-    public static Either<Exception, String> registerService(String name, String uri) {
+    public static Either<Exception, String> registerService(String name, String host, int port) {
+    
+        String uuid = UUID.randomUUID().toString().replaceAll("-", "");                        
+        String payload = String.format("value={\"host\":\"%s\",\"port\":%s}&ttl=%s", host, port, HEARTBEAT_SEC);
+
+        // This is how to reverse an array in Java?
+        List<String> cheMerdaDiApi = Arrays.asList(name.split("\\."));
+        Collections.reverse(cheMerdaDiApi);
+
+        // TODO usare un nome di doninio! o una configurazione!
+        String path = "http://127.0.0.1:2379/v2/keys/skydns/" + String.join("/", cheMerdaDiApi);
+
+        if (log.isDebugEnabled()) {
+            log.debug(new LogMap()
+                    .put("action", "registering service")
+                    .put("name", name)
+                    .put("payload", payload)
+                    .put("etcd", path).toString());
+        }
         
-        try(Jedis jedis = jedispool.getResource()) {
+        try {                  
+            URL url = new URL(path);            
+            HttpURLConnection connection = (HttpURLConnection)url.openConnection();
+            connection.setRequestMethod("PUT");
+            connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+
+            connection.setUseCaches (false);
+            connection.setDoInput(true);
+            connection.setDoOutput(true);
             
-            String uuid = UUID.randomUUID().toString().replaceAll("-", "");
-            String keyService = getServiceKey(name, uuid);
-            String value = new URI(uri).toString(); // We cast to URI to perform consistency check - this may be changed in the near future
-            
-            // Register this service
-            jedis.set(keyService, value);
-            jedis.expire(keyService, 30);
-            
-            // Add it to the rrobin list of available services
-            logdebug(new LogMap()
-                    .put("action", "pushing to rrobin queue")
-                    .put("instance", uuid)
-                    .put("queue", getServiceList(name)));
-            
-            jedis.lpush(getServiceList(name), uuid);
-            
-            ScheduledFuture<?> task = schedule.scheduleAtFixedRate(() -> {
-                try(Jedis _redis = jedispool.getResource()) {
-                    
-                    logdebug(new LogMap().put("action", "heartbeat").put("keyservice", keyService).put("instance", value));
-                    
-                    _redis.set(keyService, value);
-                    _redis.expire(keyService, 30);
+            try(OutputStreamWriter wr = new OutputStreamWriter(connection.getOutputStream());){
+                wr.write(payload);
+                wr.flush();
+                
+                if(log.isDebugEnabled()) {
+                    try(BufferedReader rd = new BufferedReader(new InputStreamReader(connection.getInputStream()));) {                
+                        String line;
+                        while ((line = rd.readLine()) != null) {
+                            log.debug(new LogMap().put("response", line).toString());
+                        }      
+                    }    
                 }                
-                catch (Exception e) {
-                    log.error(new LogMap().put("action", "heartbet")
-                            .put("service", keyService)
-                            .put("error", e.getMessage()).toString(), e );
-                }
-            }, 20, 20, TimeUnit.SECONDS);
-            
-            scheduledTasks.put(uuid, task);
+            }            
             
             return Either.right(uuid);
         }
         catch (Exception e) {
             log.error(new LogMap().put("action", "registerService")
                     .put("service", name)
-                    .put("uri", uri)
+                    .put("host", host)
+                    .put("port", port)
                     .put("error", e.getMessage()).toString(), e );
             return Either.left(e);
-        }               
+        }
+                   
     }
 
     /**
