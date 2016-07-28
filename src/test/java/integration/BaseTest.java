@@ -20,14 +20,7 @@ public class BaseTest {
     
     static {
         System.setProperty(org.slf4j.impl.SimpleLogger.DEFAULT_LOG_LEVEL_KEY, "DEBUG");
-        System.setProperty(org.slf4j.impl.SimpleLogger.LOG_FILE_KEY, "System.out");       
-        
-        System.setProperty("sun.net.spi.nameservice.nameservers", "127.0.0.1");
-        System.setProperty("sun.net.spi.nameservice.provider.1", "dns,dnsjava");
-
-        // Don't know why, but if I do not resolve a host right after setting the properties, it won't work....
-        try {System.out.println(InetAddress.getByName("www.google.com").getHostAddress());}
-        catch (Exception e) {e.printStackTrace();}
+        System.setProperty(org.slf4j.impl.SimpleLogger.LOG_FILE_KEY, "System.out");               
      }
     
     private static final Logger log = LoggerFactory.getLogger(BaseTest.class);

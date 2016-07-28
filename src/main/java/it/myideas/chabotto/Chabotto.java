@@ -6,6 +6,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
+import java.net.InetAddress;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Optional;
@@ -27,6 +28,23 @@ import javaslang.control.Either;
  *
  */
 public class Chabotto {
+    
+//    static {
+//        // Chabotto works with DNS. So we are setting dns here
+//        
+//        System.setProperty("sun.net.spi.nameservice.nameservers", "127.0.0.1");
+//        System.setProperty("sun.net.spi.nameservice.provider.1", "dns,dnsjava");
+//
+//        java.security.Security.setProperty("sun.net.spi.nameservice.nameservers", "127.0.0.1");
+//        java.security.Security.setProperty("sun.net.spi.nameservice.provider.1", "dns,dnsjava");
+//        
+//        java.security.Security.setProperty("networkaddress.cache.ttl" , "0");
+//        java.security.Security.setProperty("networkaddress.cache.negative.ttl" , "0");
+//        
+//        // Don't know why, but if I do not resolve a host right after setting the properties, it won't work....
+//        try {System.out.println("STOKAZZOOOO" + InetAddress.getByName("www.google.com").getHostAddress());}
+//        catch (Exception e) {e.printStackTrace();}
+//    }
 
     private Chabotto(){}
 
