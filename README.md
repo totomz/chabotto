@@ -14,7 +14,7 @@ Main features are:
 
 `Chabotto` requires a redis backend to manage its queues. 
 
-A `service`:
+A `service` :
 * register iteslf under a `serviceName`, providing its `hostname, port, protocol, path`
 * is given a unique identifier `uuid`
 * at a given schedule, it must provide an `heartbeat`. If not, the service automatically removed from the registry (this is done automajically)
