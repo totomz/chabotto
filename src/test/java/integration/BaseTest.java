@@ -8,8 +8,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import it.myideas.chabotto.Chabotto;
+import java.net.InetAddress;
 import javaslang.control.Try;
-import redis.clients.jedis.Jedis;
 
 /**
  * Common init and cleanup for all the tests
@@ -20,17 +20,15 @@ public class BaseTest {
     
     static {
         System.setProperty(org.slf4j.impl.SimpleLogger.DEFAULT_LOG_LEVEL_KEY, "DEBUG");
-        System.setProperty(org.slf4j.impl.SimpleLogger.LOG_FILE_KEY, "System.out");        
+        System.setProperty(org.slf4j.impl.SimpleLogger.LOG_FILE_KEY, "System.out");               
      }
     
     private static final Logger log = LoggerFactory.getLogger(BaseTest.class);
-    protected Jedis jedis;    
     protected ArrayList<Process> processToDestroy;
     
     
     @Before
     public void init() {
-        jedis = new Jedis();
         processToDestroy = new ArrayList<>();
         cleanup();
     }
@@ -48,15 +46,7 @@ public class BaseTest {
                 System.out.println(e.getMessage());
             }
             
-        });
-        
-        jedis.keys("*").stream()
-            .forEach(key -> {
-//                System.out.println("Deleting " + key + "...");
-                jedis.del(key);
-            })
-        ;
-        jedis.close();
+        });        
     }
     
     protected void waitForHeartbeatTimeOut() {
