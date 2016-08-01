@@ -43,20 +43,11 @@ public class TestServiceRegistration extends BaseTest {
     }
     
     
-    private DnsSrvResolver resolver() {
-        return DnsSrvResolvers.newBuilder()
-            .cachingLookups(false)
-            .retainingDataOnFailures(false)
-            .dnsLookupTimeoutMillis(1000)
-            .build();
-    }
-    
-    
     @Test
     public void testServiceRegistration() throws URISyntaxException, UnknownHostException, InterruptedException {
         
-        String name = new LoremIpsum().randomWord() + ".test.services.porketta";
-        String ip = "151.100.152." + Integer.toString( new Random().nextInt(254) );
+        String name = randomSubDomain("test.services.porketta");
+        String ip = randomIp();
         
         String uuid = Chabotto.registerService(name, ip, 8080).get();
         
@@ -96,8 +87,8 @@ public class TestServiceRegistration extends BaseTest {
     @Test
     public void testServiceDeregistration() throws UnknownHostException, InterruptedException, Exception {
         
-        String name = new LoremIpsum().randomWord() + ".test.services.porketta";
-        String ip = "151.100.152." + Integer.toString( new Random().nextInt(254) );
+        String name = randomSubDomain("test.services.porketta");
+        String ip = randomIp();
         
         String uuid = Chabotto.registerService(name, ip, 8080).get();
         assertTrue("Can't resolve registered service name " + uuid, Try.of(()-> {return java.net.InetAddress.getByName(uuid).getHostAddress();}).isSuccess());

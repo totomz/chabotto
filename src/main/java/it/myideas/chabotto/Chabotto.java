@@ -92,7 +92,7 @@ public class Chabotto {
     // TODO Add a cleanup method to stop the threadpool 
     
     private static Optional<Exception> httpCall(String method, String path, String payload) {
-        
+        System.out.println("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
         if (log.isDebugEnabled()) {
             log.debug(new LogMap()
                     .put("action", "httpCall")

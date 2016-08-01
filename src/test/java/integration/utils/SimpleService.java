@@ -6,27 +6,27 @@ import it.myideas.chabotto.Chabotto;
 
 public class SimpleService {
 
-//    public static void main(String[] args) throws InterruptedException {
-//        
-//        String uri = "";
-//        
-//        try {
-//            int port = (int)(Math.random()*1000);
-//            uri = new URI("pork://a.test.com:" + port + "/george").toString();
-//            
-//            System.out.println("Registering service name " + args[0] + " on " + uri);
-//            Chabotto.registerService(args[0], uri);
-//        }
-//        catch (Exception e) {
-//            System.out.println("ERROR:" + e.getMessage());
-//        }
-//        
-//        
-//        
-//        while (true) {
-//            System.out.println("sleeping");
-//            Thread.sleep(Long.MAX_VALUE);            
-//        }
-//    }
+    public static void main(String[] args) throws InterruptedException {
+        
+        String[] tmp = args[0].split(";");
+        
+        try {
+            int port = (int)(Math.random()*1000);
+            
+            System.out.println("Registering service name " + tmp[0] + " with ip " + tmp[1]);
+            Chabotto.registerService(tmp[0], tmp[1], port);
+            System.out.println("Fatto");
+        }
+        catch (Exception e) {
+            System.out.println("ERROR:" + e.getMessage());
+        }
+        
+        
+        
+        while (true) {
+            System.out.println("sleeping");
+            Thread.sleep(Long.MAX_VALUE);            
+        }
+    }
     
 }

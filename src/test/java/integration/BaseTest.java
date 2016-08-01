@@ -1,5 +1,7 @@
 package integration;
 
+import com.spotify.dns.DnsSrvResolver;
+import com.spotify.dns.DnsSrvResolvers;
 import java.util.ArrayList;
 
 import org.junit.After;
@@ -9,7 +11,9 @@ import org.slf4j.LoggerFactory;
 
 import it.myideas.chabotto.Chabotto;
 import java.net.InetAddress;
+import java.util.Random;
 import javaslang.control.Try;
+import net._01001111.text.LoremIpsum;
 
 /**
  * Common init and cleanup for all the tests
@@ -67,5 +71,19 @@ public class BaseTest {
         return string + (int)(Math.random()*1000);
     }
     
+    public DnsSrvResolver resolver() {
+        return DnsSrvResolvers.newBuilder()
+            .cachingLookups(false)
+            .retainingDataOnFailures(false)
+            .dnsLookupTimeoutMillis(1000)
+            .build();
+    }
     
+    public String randomSubDomain(String domain){
+        return new LoremIpsum().randomWord() + "." + domain;
+    }
+    
+    public String randomIp(){        
+        return "151.100.152." + Integer.toString( new Random().nextInt(254) );
+    }
 }

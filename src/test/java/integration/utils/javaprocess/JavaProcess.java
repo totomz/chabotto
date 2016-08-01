@@ -15,7 +15,7 @@ public final class JavaProcess {
         String classpath = System.getProperty("java.class.path");
         String className = klass.getCanonicalName();
 
-        ProcessBuilder builder = new ProcessBuilder(javaBin, "-cp", classpath, className, params);
+        ProcessBuilder builder = new ProcessBuilder(javaBin, "-cp", classpath, "-Dsun.net.spi.nameservice.provider.1=dns,dnsjava -Ddns.server=127.0.0.1 -Dsun.net.inetaddr.ttl=0 -Dsun.net.inetaddr.negative.ttl=0 -Dchabotto.servname=services.porketta.", className, params);
 
         return  builder.start();        
     }
