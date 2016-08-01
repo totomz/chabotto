@@ -18,8 +18,12 @@ import org.slf4j.LoggerFactory;
 
 import com.spotify.dns.DnsSrvResolver;
 import com.spotify.dns.DnsSrvResolvers;
+import it.myideas.chabotto.dnsjava.NoServiceCache;
+import java.security.Security;
 
 import javaslang.control.Either;
+import org.xbill.DNS.Lookup;
+import org.xbill.DNS.Type;
 
 /**
  * Main class for this service registry. 
@@ -32,18 +36,41 @@ public class Chabotto {
     private static final Logger log = LoggerFactory.getLogger(Chabotto.class);
     
     static {
-        // Chabotto works with DNS. If DNS are not set correctly, crash everything       
-        if(System.getProperty("sun.net.spi.nameservice.provider.1") == null ) {
-            log.error("Chabotto can not work with default java DNS. Run your JVM with -Dsun.net.spi.nameservice.provider.1=dns,dnsjava");
+        // Chabotto works with DNS. If DNS are not set correctly, notify to the user and quit
+        
+        if(System.getProperty("sun.net.spi.nameservice.provider.1") == null || !System.getProperty("sun.net.spi.nameservice.provider.1").equals("dns,dnsjava")) {
+            log.error("Chabotto requires dnsjava as JVM dns resolver; please invoke jvm with -Dsun.net.spi.nameservice.provider.1=dns,dnsjava");
             System.exit(1);
-        }        
+        }
+        
+        if(Security.getProperty("networkaddress.cache.ttl") == null && System.getProperty("sun.net.inetaddr.ttl") == null) {
+            log.error("Chabotto can't work with DNS caching enabled. Run JVM with -Dsun.net.inetaddr.ttl=0");
+            System.exit(1);
+        }
+        
+        if(Security.getProperty("networkaddress.cache.negative.ttl") == null && System.getProperty("sun.net.inetaddr.negative.ttl") == null) {
+            log.error("Chabotto can't work with DNS caching enabled. Run JVM with -Dsun.net.inetaddr.negative.ttl=0");
+            System.exit(1);
+        }
+        
+        if(System.getProperty("chabotto.servname") == null) {
+            log.error("Chabotto can't work without a root domain name for the service to serve; please run JVM with -Dchabotto.servname=");
+            System.exit(1);            
+        }
+        
+        // Now fake the cache
+        String dname = System.getProperty("chabotto.servname");
+        Lookup.setDefaultCache(new NoServiceCache(dname), Type.ANY);
+        Lookup.setDefaultCache(new NoServiceCache(dname), Type.A);
+        Lookup.setDefaultCache(new NoServiceCache(dname), Type.AAAA);
+        Lookup.setDefaultCache(new NoServiceCache(dname), Type.SRV);        
     }
 
     private Chabotto(){}
 
     
     /** Interval between two heartbeat signal in seconds */
-    public static final int HEARTBEAT_SEC = 3000;
+    public static final int HEARTBEAT_SEC = 30;
     
     /** Pool for scheduled operations. All the services in the same jvm share this pool. 2 threads should be enough */
     private static final ScheduledExecutorService schedule = Executors.newScheduledThreadPool(2);   
